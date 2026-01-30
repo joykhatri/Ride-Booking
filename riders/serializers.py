@@ -7,7 +7,7 @@ class RiderProfileSerializer(serializers.ModelSerializer):
         model = RiderProfile
         fields = ['id', 'name', 'email', 'phone', 'password', 'role', 'created_at']
         extra_kwargs = {'password' : {'write_only': True}}
-
+    
     def validate(self, data):
         if self.instance is None:
             required_fields = ['name', 'email', 'phone']
@@ -57,8 +57,8 @@ class RideSerializer(serializers.ModelSerializer):
         
         return value
 
+
 class RiderPaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = RiderPayment
-
         fields = '__all__'
