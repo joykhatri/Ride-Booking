@@ -815,39 +815,57 @@ class RideViewSet(viewsets.ModelViewSet):
                 "data": None
             }, status=status.HTTP_401_UNAUTHORIZED)
         
-        if user.role not in ["RIDER", "ADMIN"]:
-            return Response({
-                "status": False,
-                "message": "You do not have permission",
-                "data": None
-            }, status=status.HTTP_401_UNAUTHORIZED)
-        
-        # Check if rider has a vehicle
-        if not Vehicle.objects.filter(rider=user).exists():
-            return Response({
-                "status": False,
-                "message": "You must have a registered vehicle to decline rides.",
-                "data": None
-            }, status=status.HTTP_400_BAD_REQUEST)
+        allowed_status = ['requested', 'accepted']
         
         try:
-            ride = Ride.objects.get(pk=pk, rider=user)
+            ride = Ride.objects.get(pk=pk)
         except Ride.DoesNotExist:
             return Response({
                 "status": False,
-                "message": "Ride not found or not assigned to you",
+                "message": "Ride not found",
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)
 
-        if ride.status != 'requested':
+        if ride.status not in allowed_status:
             return Response({
                 "status": False,
                 "message": f"Cannot decline ride with status '{ride.status}'",
                 "data": None
-            }, status=status.HTTP_400_BAD_REQUEST)
+             }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if user.role == "RIDER":
+            if not Vehicle.objects.filter(rider=user).exists():
+                return Response({
+                    "status": False,
+                    "message": "You must have a registered vehicle to decline rides.",
+                    "data": None
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            if not ride.rider or ride.rider != user:
+                return Response({
+                    "status": False,
+                    "message": "Ride not assigned to you.",
+                    "data": None
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+        elif user.role == "USER":
+            if ride.user_name != user.name:
+                return Response({
+                    "status": False,
+                    "message": "You are not allowed to decline this ride.",
+                    "data": None
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+        elif user.role == "ADMIN":
+            pass
 
-        rider_profile = RiderProfile.objects.get(name=user)
-        ride.rider = rider_profile
+        else:
+            return Response({
+                "status": False,
+                "message": "You do not have permission to perform this action.",
+                "data": None
+            }, status=status.HTTP_403_FORBIDDEN)
+        
         ride.status = 'declined'
         ride.save()
 
@@ -855,7 +873,7 @@ class RideViewSet(viewsets.ModelViewSet):
             "status": True,
             "message": "Ride declined",
             "data": RideSerializer(ride).data
-        })
+        }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
