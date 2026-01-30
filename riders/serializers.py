@@ -8,22 +8,6 @@ class RiderProfileSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'email', 'phone', 'password', 'role', 'created_at']
         extra_kwargs = {'password' : {'write_only': True}}
 
-    # def validate_phone(self, value):
-    #     digits = ''.join(filter(str.isdigit, value))
-    #     if len(digits) < 10:
-    #         raise serializers.ValidationError("Phone number must be at least 10 digits")
-
-    #     rider_id = self.instance.id if self.instance else None
-    #     if RiderProfile.objects.exclude(id=rider_id).filter(phone=digits).exists():
-    #         raise serializers.ValidationError("Phone number is already in use.")
-    #     return digits
-    
-    # def validate_email(self, value):
-    #     rider_id = self.instance.id if self.instance else None
-    #     if RiderProfile.objects.exclude(id=rider_id).filter(email=value).exists():
-    #         raise serializers.ValidationError("Email is already in use.")
-    #     return value
-    
     def validate(self, data):
         if self.instance is None:
             required_fields = ['name', 'email', 'phone']
@@ -72,13 +56,9 @@ class RideSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Phone number must have 10 digits.")
         
         return value
-    
-    # def validate_charges(self, value):
-    #     if value <= 0:
-    #         raise serializers.ValidationError("Charges must be greater than 0")
-    #     return value
 
 class RiderPaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = RiderPayment
+
         fields = '__all__'
