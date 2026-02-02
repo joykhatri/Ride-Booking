@@ -56,7 +56,11 @@ class Ride(models.Model):
     user_name = models.CharField(max_length=100)
     user_phone = models.CharField(max_length=20)
     pickup_location = models.CharField(max_length=250)
+    pickup_latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    pickup_longitude = models.DecimalField(max_digits=9, decimal_places=6)
     drop_location = models.CharField(max_length=250)
+    drop_latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    drop_longitude = models.DecimalField(max_digits=9, decimal_places=6)
     vehicle_type = models.CharField(max_length=20, choices=[
         ('CAR', 'Car'),
         ('BIKE', 'Bike'),

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import RiderProfile, Vehicle, Ride, RiderPayment
+from .models import RiderProfile, Vehicle, Ride, RiderPayment, Ratings
 from django.contrib.auth.hashers import make_password
 
 class RiderProfileSerializer(serializers.ModelSerializer):
@@ -61,4 +61,9 @@ class RideSerializer(serializers.ModelSerializer):
 class RiderPaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = RiderPayment
+        fields = '__all__'
+
+class RatingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ratings
         fields = '__all__'

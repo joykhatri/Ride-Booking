@@ -123,8 +123,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'ride_sharing',
-        'USER': 'your_username',
-        'PASSWORD': 'your_password',
+        'USER': 'root',
+        'PASSWORD': 'Joy@0912',
         'HOST': 'localhost',
         'PORT': '3306',
     }
@@ -150,6 +150,5 @@ SIMPLE_JWT = {
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
-
 
 AUTH_USER_MODEL = "riders.RiderProfile"
