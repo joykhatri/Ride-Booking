@@ -73,6 +73,9 @@ APIs endpoint:
     "password": ""
 }
 
+after login you have get 2 tokens (access & refresh).
+enter access token in authorization (Auth Type - Bearer Token)
+
 7. Create Vehicle
    POST /api/riders/vehicle/
    {
