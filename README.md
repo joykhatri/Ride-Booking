@@ -58,13 +58,13 @@ APIs endpoint:
    GET /api/riders/profile/
 
 3. Get User by Id
-   GET /api/riders/profile/{id}
+   GET /api/riders/profile/{id}/
 
 4. Update User
-   PUT /api/riders/profile/{id}
+   PUT /api/riders/profile/{id}/
 
 5. Delete User
-   DELETE /api/riders/profile/{id}
+   DELETE /api/riders/profile/{id}/
 
 6. Login
    POST /api/riders/login/
@@ -87,11 +87,44 @@ enter access token in authorization (Auth Type - Bearer Token)
    GET /api/riders/vehicle/
 
 9. Get Vehicle by Id
-    GET /api/riders/vehicle/{id}
+    GET /api/riders/vehicle/{id}/
 
 10. Update Vehicle
-    PUT /api/riders/vehicle/{id}
+    PUT /api/riders/vehicle/{id}/
 
 11. Delete Vehicle
-    DELETE /api/riders/vehicle/{id}
+    DELETE /api/riders/vehicle/{id}/
 
+12. Create Ride
+    POST /api/riders/ride/
+    {
+    "pickup_location": "street A",
+    "pickup_latitude": 12.971598,
+    "pickup_longitude": 77.594566,
+    "drop_location": "street B",
+    "drop_longitude": 12.978373,
+    "drop_latitude": 77.640835,
+    "vehicle_type": "CAR",
+    "charges": 150
+}
+
+13. Update Ride
+    PUT /api/riders/ride/{id}/
+
+14. Delete Ride
+    DELETE /api/riders/ride/{id}/
+
+15. Accept Ride
+    POST /api/riders/ride/{id}/accept/
+
+16. Decline Ride
+    POST /api/riders/ride/{id}/decline/
+
+17. Complete Ride
+    POST /api/riders/ride/{id}/complete/
+
+18. Create Payment
+    POST /api/riders/payments/{id}/create_payment/
+
+19. Payment Paid
+    POST /api/riders/payments/{id}/mark_paid/
