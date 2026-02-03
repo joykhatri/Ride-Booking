@@ -125,8 +125,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'ride_sharing',
-        'USER': 'root',
-        'PASSWORD': 'Joy@0912',
+        'USER': 'your_username',
+        'PASSWORD': 'your_password',
         'HOST': 'localhost',
         'PORT': '3306',
     }
@@ -159,4 +159,5 @@ CHANNEL_LAYERS ={
     "default": {
         "BACKEND": "channels.layers.InMemoryChannelLayer"
     }
+
 }
