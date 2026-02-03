@@ -3,5 +3,4 @@ from .consumers import RiderAvailabilityConsumer
 
 websocket_urlpatterns = [
     re_path(r"ws/riders/availability/?$", RiderAvailabilityConsumer.as_asgi()),
-
 ]
