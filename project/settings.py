@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'riders',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -70,6 +71,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'project.wsgi.application'
+ASGI_APPLICATION = 'project.asgi.application'
 
 
 # Database
@@ -123,8 +125,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'ride_sharing',
-        'USER': 'your_username',
-        'PASSWORD': 'your_password',
+        'USER': 'root',
+        'PASSWORD': 'Joy@0912',
         'HOST': 'localhost',
         'PORT': '3306',
     }
@@ -151,5 +153,10 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
-
 AUTH_USER_MODEL = "riders.RiderProfile"
+
+CHANNEL_LAYERS ={
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
