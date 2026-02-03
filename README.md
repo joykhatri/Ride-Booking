@@ -12,12 +12,14 @@ install django, django rest framework & MySQL.
 -> pip install mysqlclient
 -> django-admin startproject project .
 -> django-admin startapp riders
--> pip install djangorestframework-simplejwt
+-> pip install djangorestframework-simplejwt (For JWT Authentication)
+-> pip install channels (For WebSocket)
 
 Add apps to INSTALLED_APPS in vehicle_system/settings.py:INSTALLED_APPS = [
     ...
     'rest_framework',
     'riders',
+    'channels',
 ]
 
 -> After install mysql
@@ -123,8 +125,24 @@ enter access token in authorization (Auth Type - Bearer Token)
 17. Complete Ride
     POST /api/riders/ride/{id}/complete/
 
-18. Create Payment
+19. Create Payment
     POST /api/riders/payments/{id}/create_payment/
 
-19. Payment Paid
+20. Payment Paid
     POST /api/riders/payments/{id}/mark_paid/
+
+
+WebSocket - It check real time Riders availability.
+When User book ride and rider accept, then the availabilty status is rider is automatically False and it will not show in webSocket Response, when Rider completed the ride then the availabilty status is automatically true, and it will show in WebSocket Response.
+
+-> For WebSocket
+Install daphne to runserver for asgi
+-> pip install daphne   
+
+-> For run daphne server
+$env:DJANGO_SETTINGS_MODULE="project.settings"
+daphne -p 8000 project.asgi:application
+
+WebScoket Endpoints (Postman)
+-> Select WebSocket in Postman
+-> Enter this EndPoint (ws://127.0.0.1:8000/ws/riders/availability/)
