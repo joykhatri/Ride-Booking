@@ -146,3 +146,4 @@ daphne -p 8000 project.asgi:application
 WebScoket Endpoints (Postman)
 -> Select WebSocket in Postman
 -> Enter this EndPoint (ws://127.0.0.1:8000/ws/riders/availability/)
+-> This WebSocket is for to check rider availability.
