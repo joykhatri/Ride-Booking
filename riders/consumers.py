@@ -2,6 +2,11 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
 
+
+###########################################################################
+#                       Rider Avialability Module                         #
+###########################################################################
+
 class RiderAvailabilityConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.group_name = "rider_availability"
@@ -35,3 +40,31 @@ class RiderAvailabilityConsumer(AsyncWebsocketConsumer):
 
     async def rider_update(self, event):
         await self.send(text_data=json.dumps(event["data"]))
+
+
+###########################################################################
+#                       Create Ride Module                                #
+###########################################################################
+
+class RideConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.group_name = "new_rides"
+
+        await self.channel_layer.group_add(
+            self.group_name,
+            self.channel_name
+        )
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            self.group_name,
+            self.channel_name
+        )
+
+    async def new_ride(self, event):
+        await self.send(text_data=json.dumps({
+            "status": True,
+            "message": "New Ride Available",
+            "data": event["data"]
+        }))

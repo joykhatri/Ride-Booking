@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from django.contrib.auth.hashers import check_password
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import action
-from riders.utils import broadcast_available_riders
+from riders.utils import broadcast_available_riders, broadcast_new_ride
 
 ###########################################################################
 #                       Create Profile                                    #
@@ -653,7 +653,10 @@ class RideViewSet(viewsets.ModelViewSet):
 
         serializer = RideSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(user_name=user.name, user_phone=user.phone)
+            ride = serializer.save(user_name=user.name, user_phone=user.phone)
+
+            broadcast_new_ride(ride)
+
             return Response({
                 "status": True,
                 "message": "Ride created successfully",
@@ -789,7 +792,6 @@ class RideViewSet(viewsets.ModelViewSet):
                 "data": None
             }, status=status.HTTP_401_UNAUTHORIZED)
 
-        # Check if rider has a vehicle
         if not Vehicle.objects.filter(rider=user).exists():
             return Response({
                 "status": False,
@@ -820,13 +822,6 @@ class RideViewSet(viewsets.ModelViewSet):
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # rider_profile = RiderProfile.objects.get(name=user)
-        # ride.rider = rider_profile
-        # ride.status = 'accepted'
-        # ride.save()
-
-        # Mark ride as accepted
-        # rider_profile = RiderProfile.objects.get(id=user.id)
         ride.rider = user
         ride.status = 'accepted'
         ride.save()
@@ -906,18 +901,13 @@ class RideViewSet(viewsets.ModelViewSet):
                 "data": None
             }, status=status.HTTP_403_FORBIDDEN)
         
-        # If ride was accepted, make the rider available first
-        if ride.status == "accepted" and ride.rider:
-            rider_profile = ride.rider
-            rider_profile.is_available = True
-            rider_profile.save()
+        if ride.status == 'accepted' and ride.rider:
+            ride.rider.is_available = True
+            ride.rider.save(update_fields=['is_available'])
 
-        # Now update ride status to declined and unassign rider
         ride.status = 'declined'
-        ride.rider = None
         ride.save()
 
-        # Broadcast updated available riders
         broadcast_available_riders()
         
         return Response({
@@ -943,7 +933,6 @@ class RideViewSet(viewsets.ModelViewSet):
                 "data": None
             }, status=status.HTTP_401_UNAUTHORIZED)
         
-        # Check if rider has a vehicle
         if not Vehicle.objects.filter(rider=user).exists():
             return Response({
                 "status": False,
@@ -967,12 +956,6 @@ class RideViewSet(viewsets.ModelViewSet):
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # rider_profile = RiderProfile.objects.get(name=user)
-        # ride.rider = rider_profile
-        # ride.status = 'completed'
-        # ride.save()
-
-        # Mark ride as completed
         ride.status = 'completed'
         ride.save()
 
@@ -981,7 +964,6 @@ class RideViewSet(viewsets.ModelViewSet):
         rider_profile.is_available = True
         rider_profile.save()
 
-        # Broadcast updated list to WebSocket
         broadcast_available_riders()
 
         return Response({
@@ -1094,3 +1076,79 @@ class RiderPaymentViewSet(viewsets.ModelViewSet):
             "message": "Payment paid",
             "data": RiderPaymentSerializer(payment).data
         }, status=status.HTTP_202_ACCEPTED)
+    
+
+###########################################################################
+#                       Ratings Module                                    #
+###########################################################################
+
+class RatingsViewSet(viewsets.ModelViewSet):
+    queryset = Ratings.objects.all()
+    serializer_class = RatingsSerializer
+
+    def create(self, request):
+        data = request.data
+        user = request.user
+        if not user.is_authenticated:
+            return Response({
+                "status": False,
+                "message": "Authentication credentials were not provided.",
+                "data": None
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        if user.role == "RIDER":
+            return Response({
+                "status": False,
+                "message": "Riders are not allowed.",
+                "data": None
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        ride_id = data.get("ride")
+        if not ride_id:
+            return Response({
+                "status": False,
+                "message": "Ride is required",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            ride = Ride.objects.get(id=ride_id)
+        except Ride.DoesNotExist:
+            return Response({
+                "status": False,
+                "message": "Ride not found",
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        if ride.status != "completed":
+            return Response({
+                "status": False,
+                "message": "You can only rate your own ride",
+                "data": None
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        if Ratings.objects.filter(ride=ride).exists():
+            return Response({
+                "status": False,
+                "message": "This ride is already rated",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = RatingsSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save(
+                user=user,
+                rider = ride.rider,
+                ride=ride
+            )
+            return Response({
+                "status": True,
+                "message": "Ratings submitted successfully",
+                "data": serializer.data
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            "status": False,
+            "message": serializer.errors,
+            "data": None
+        }, status=status.HTTP_400_BAD_REQUEST)
+    

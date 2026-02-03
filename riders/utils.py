@@ -21,3 +21,21 @@ def broadcast_available_riders():
             }
         }
     )
+
+
+def broadcast_new_ride(ride):
+    from asgiref.sync import async_to_sync
+    from channels.layers import get_channel_layer
+    from riders.serializers import RideSerializer
+
+    channel_layer = get_channel_layer()
+
+    serialized_ride = RideSerializer(ride).data
+
+    async_to_sync(channel_layer.group_send)(
+        "new_rides",
+        {
+            "type": "new_ride",
+            "data": serialized_ride
+        }
+    )
