@@ -64,7 +64,24 @@ class RideConsumer(AsyncWebsocketConsumer):
 
     async def new_ride(self, event):
         await self.send(text_data=json.dumps({
+            "event": "new_ride",
             "status": True,
             "message": "New Ride Available",
+            "data": event["data"]
+        }))
+
+    async def ride_updated(self, event):
+        await self.send(text_data=json.dumps({
+            "event": "ride_updated",
+            "status": True,
+            "message": "Ride Updated",
+            "data": event["data"]
+        }))
+
+    async def ride_deleted(self, event):
+        await self.send(text_data=json.dumps({
+            "event": "ride_deleted",
+            "status": True,
+            "message": "Ride Deleted",
             "data": event["data"]
         }))

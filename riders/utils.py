@@ -23,19 +23,22 @@ def broadcast_available_riders():
     )
 
 
-def broadcast_new_ride(ride):
+def broadcast_new_ride(event_type, ride):
     from asgiref.sync import async_to_sync
     from channels.layers import get_channel_layer
     from riders.serializers import RideSerializer
 
     channel_layer = get_channel_layer()
 
-    serialized_ride = RideSerializer(ride).data
+    if isinstance(ride, dict):
+        serialized_ride = ride
+    else:
+        serialized_ride = RideSerializer(ride).data
 
     async_to_sync(channel_layer.group_send)(
         "new_rides",
         {
-            "type": "new_ride",
+            "type": event_type,
             "data": serialized_ride
         }
     )
