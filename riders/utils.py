@@ -62,27 +62,3 @@ def broadcast_new_ride():
                 }
             }
         )
-
-# For all rides (Show all rides that is in request status and whenever rider accept/decline ride then automatically update)
-# def broadcast_new_ride():
-#     from asgiref.sync import async_to_sync
-#     from channels.layers import get_channel_layer
-#     from riders.serializers import RideSerializer
-#     from riders.models import Ride
-
-#     channel_layer = get_channel_layer()
-
-#     rides = Ride.objects.filter(status="requested")
-#     data = RideSerializer(rides, many=True).data
-
-#     async_to_sync(channel_layer.group_send)(
-#         "new_rides",
-#         {
-#             "type": "rides_update",
-#             "data": {
-#                 "status": True,
-#                 "message": "Available Rides are",
-#                 "data": data
-#             }
-#         }
-#     )
