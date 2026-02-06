@@ -874,7 +874,7 @@ class RideViewSet(viewsets.ModelViewSet):
         if not Vehicle.objects.filter(rider=user, vehicle_type=ride.vehicle_type).exists():
             return Response({
                 "status": False,
-                "message": f"You do not have {ride.vehicle_type} to accept this ride.",
+                "message": f"You do not have {ride.vehicle_type} to pick up this ride.",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
         
@@ -890,7 +890,7 @@ class RideViewSet(viewsets.ModelViewSet):
         if ride.status != 'accepted':
             return Response({
                 "status": False,
-                "message": f"Cannot complete ride with status '{ride.status}'",
+                "message": f"Cannot pick up ride with status '{ride.status}'",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
         
@@ -1140,3 +1140,4 @@ class RiderPaymentViewSet(viewsets.ModelViewSet):
             "message": "Payment paid",
             "data": RiderPaymentSerializer(payment).data
         }, status=status.HTTP_202_ACCEPTED)
+
