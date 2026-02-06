@@ -74,6 +74,7 @@ class Ride(models.Model):
     status = models.CharField(max_length=20, choices=[
         ('requested', 'Requested'),
         ('accepted', 'Accepted'),
+        ('picked_up', 'Picked Up'),
         ('declined', 'Declined'),
         ('completed', 'Completed')
     ], default='requested')
