@@ -1,6 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
+from riders.utils import validate_coordinates ,rider_location
 
 
 ###########################################################################
@@ -43,7 +44,7 @@ class RiderAvailabilityConsumer(AsyncWebsocketConsumer):
 
 
 ###########################################################################
-#                       Create Ride Module                                #
+#               Nearby Rider can see requested ride Module                #
 ###########################################################################
 
 class RideConsumer(AsyncWebsocketConsumer):
@@ -97,3 +98,50 @@ class RideConsumer(AsyncWebsocketConsumer):
 
     async def rides_update(self, event):
         await self.send(text_data=json.dumps(event["data"]))
+
+###########################################################################
+#                       Rider Live Location Module                        #
+###########################################################################
+
+class RiderLocationConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.rider_id = self.scope['url_route']['kwargs']['rider_id']
+        self.group_name = f"rider_location_{self.rider_id}"
+
+        await self.channel_layer.group_add(
+            self.group_name,
+            self.channel_name
+        )
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            self.group_name,
+            self.channel_name
+        )
+
+    async def receive(self, text_data):
+        from riders.models import RiderProfile
+
+        data = json.loads(text_data)
+        lat = data.get('latitude')
+        lng = data.get('longitude')
+
+        if validate_coordinates(lat, lng):
+            await sync_to_async(RiderProfile.objects.filter(id=self.rider_id).update)(
+                latitude = lat,
+                longitude = lng
+            )
+
+            location_data = rider_location(lat, lng)
+            await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    'type': 'location_update',
+                    'data': location_data
+                }
+            )
+
+    async def location_update(self, event):
+        await self.send(text_data=json.dumps(event["data"]))
+
