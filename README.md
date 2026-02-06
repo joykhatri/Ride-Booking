@@ -119,10 +119,13 @@ enter access token in authorization (Auth Type - Bearer Token)
 15. Accept Ride
     POST /api/riders/ride/{id}/accept/
 
-16. Decline Ride
+16. Pick Up Ride
+    POST /api/riders/ride/{id}/pickup/
+
+17. Decline Ride
     POST /api/riders/ride/{id}/decline/
 
-17. Complete Ride
+18. Complete Ride
     POST /api/riders/ride/{id}/complete/
 
 19. Create Payment
