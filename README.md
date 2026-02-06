@@ -152,3 +152,12 @@ WebScoket Endpoints (Postman)
 
 -> For Create Ride WebSocket (When user create new ride, then all nearby rider can see that ride details)
     ws://127.0.0.1:8000/ws/riders/new_ride/{rider_id}
+
+-> For Rider live location (With latitude & longitude)
+    ws://127.0.0.1:8000/ws/riders/location/{rider_id}/
+
+    Enter this data in Message & update the data then it also give response in websocket & also change values in DB.
+    {
+    "latitude": ,
+    "longitude": 
+    }
