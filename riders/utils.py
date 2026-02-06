@@ -1,3 +1,7 @@
+###########################################################################
+#                       Rider Avialability Module                         #
+###########################################################################
+
 def broadcast_available_riders():
     from channels.layers import get_channel_layer
     from asgiref.sync import async_to_sync
@@ -21,6 +25,10 @@ def broadcast_available_riders():
             }
         }
     )
+
+###########################################################################
+#               Nearby Rider can see requested ride Module                #
+###########################################################################
 
 def distance_km(lat1, lon1, lat2, lon2):
     from math import radians, cos, sin, asin, sqrt
@@ -62,3 +70,21 @@ def broadcast_new_ride():
                 }
             }
         )
+
+###########################################################################
+#                       Rider Live Location Module                        #
+###########################################################################
+
+def validate_coordinates(lat, lng):
+    try:
+        lat = float(lat)
+        lng = float(lng)
+    except (ValueError, TypeError):
+        return False
+    return -90 <= lat <= 90 and -180 <= lng <= 180
+
+def rider_location(lat, lng):
+    return{
+        "latitude": float(lat),
+        "longitude": float(lng)
+    }
