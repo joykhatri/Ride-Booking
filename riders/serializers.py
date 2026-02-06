@@ -5,7 +5,7 @@ from django.contrib.auth.hashers import make_password
 class RiderProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = RiderProfile
-        fields = ['id', 'name', 'email', 'phone', 'password', 'role', 'created_at']
+        fields = ['id', 'name', 'email', 'phone', 'password', 'role', 'latitude', 'longitude', 'created_at']
         extra_kwargs = {'password' : {'write_only': True}}
     
     def validate(self, data):
@@ -61,4 +61,9 @@ class RideSerializer(serializers.ModelSerializer):
 class RiderPaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = RiderPayment
+        fields = '__all__'
+
+class RatingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ratings
         fields = '__all__'

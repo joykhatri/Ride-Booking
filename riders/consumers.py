@@ -48,14 +48,15 @@ class RiderAvailabilityConsumer(AsyncWebsocketConsumer):
 
 class RideConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.group_name = "new_rides"
+        self.rider_id = self.scope["url_route"]["kwargs"]["rider_id"]
+        self.group_name = f"rider_{self.rider_id}"
 
         await self.channel_layer.group_add(
             self.group_name,
             self.channel_name
         )
         await self.accept()
-        await self.send_rides()
+        await self.send_nearby_rides()
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
@@ -63,65 +64,74 @@ class RideConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
-    async def send_rides(self):
-        from riders.models import Ride
+    async def send_nearby_rides(self):
+        from riders.models import Ride, RiderProfile
         from riders.serializers import RideSerializer
+        from riders.utils import distance_km
         from asgiref.sync import sync_to_async
 
+        rider = await sync_to_async(RiderProfile.objects.get)(id=self.rider_id)
+        
         rides = await sync_to_async(list)(
             Ride.objects.filter(status="requested")
         )
-        data = RideSerializer(rides, many=True).data
+
+        nearby_rides = []
+        for ride in rides:
+            distance = distance_km(
+                rider.latitude,
+                rider.longitude,
+                ride.pickup_latitude,
+                ride.pickup_longitude
+            )
+            if distance <= 5:
+                nearby_rides.append(ride)
+
+        data = RideSerializer(nearby_rides, many=True).data
 
         await self.send(text_data=json.dumps({
-            "event": "send_rides",
+            "status": True,
+            "message": "Nearby Rides",
             "data": data
         }))
 
-    async def new_ride(self, event):
-        await self.send(text_data=json.dumps({
-            "event": "new_ride",
-            "status": True,
-            "message": "New Ride Available",
-            "data": event["data"]
-        }))
+    async def rides_update(self, event):
+        await self.send(text_data=json.dumps(event["data"]))
 
-    async def ride_updated(self, event):
-        await self.send(text_data=json.dumps({
-            "event": "ride_updated",
-            "status": True,
-            "message": "Ride Updated",
-            "data": event["data"]
-        }))
 
-    async def ride_deleted(self, event):
-        await self.send(text_data=json.dumps({
-            "event": "ride_deleted",
-            "status": True,
-            "message": "Ride Deleted",
-            "data": event["data"]
-        }))
+# For all rides (Show all rides that is in request status and whenever rider accept/decline ride then automatically update)
+# class RideConsumer(AsyncWebsocketConsumer):
+#     async def connect(self):
+#         self.group_name = "new_rides"
 
-    async def ride_accepted(self, event):
-        await self.send(text_data=json.dumps({
-            "event": "ride_accepted",
-            "status": True,
-            "message": "Ride Accepted",
-            "data": event["data"]
-        }))
+#         await self.channel_layer.group_add(
+#             self.group_name,
+#             self.channel_name
+#         )
+#         await self.accept()
+#         await self.send_rides()
 
-    async def ride_declined(self, event):
-        await self.send(text_data=json.dumps({
-            "event": "ride_declined",
-            "status": True,
-            "message": "Ride Declined",
-            "data": event["data"]
-        }))
+#     async def disconnect(self, close_code):
+#         await self.channel_layer.group_discard(
+#             self.group_name,
+#             self.channel_name
+#         )
 
-    async def ride_completed(self, event):
-        await self.send(text_data=json.dumps({
-            "event": "ride_completed",
-            "status": True,
-            "message": "Ride Completed",
-            "data": event["data"]
-        }))
+#     async def send_rides(self):
+#         from riders.models import Ride
+#         from riders.serializers import RideSerializer
+
+#         rides = await sync_to_async(list)(
+#             Ride.objects.filter(status="requested")
+#         )
+
+#         data = RideSerializer(rides, many=True).data
+
+#         await self.send(text_data=json.dumps({
+#             "status": True,
+#             "message": "Available rides",
+#             "data": data
+#         }))
+
+#     async def rides_update(self, event):
+#         await self.send(text_data=json.dumps(event["data"]))
