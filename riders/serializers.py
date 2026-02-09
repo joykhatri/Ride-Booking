@@ -46,7 +46,7 @@ class RideSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ride
         fields = '__all__'
-        read_only_fields = ['user_name', 'user_phone', 'rider', 'status']
+        read_only_fields = ['user', 'user_name', 'user_phone', 'rider', 'status']
 
     def validate_user_phone(self, value):
         if not value.isdigit():
@@ -61,4 +61,9 @@ class RideSerializer(serializers.ModelSerializer):
 class RiderPaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = RiderPayment
+        fields = '__all__'
+
+class RatingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ratings
         fields = '__all__'

@@ -33,6 +33,7 @@ def broadcast_available_riders():
 def distance_km(lat1, lon1, lat2, lon2):
     from math import radians, cos, sin, asin, sqrt
 
+    lat1, lon1, lat2, lon2 = map(float, [lat1, lon1, lat2, lon2])
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
 
     dlon = lon2 - lon1
@@ -58,10 +59,10 @@ def broadcast_new_ride(new_ride):
             continue
 
         distance = distance_km(
-        rider.latitude,
-        rider.longitude,
-        new_ride.pickup_latitude,
-        new_ride.pickup_longitude
+        float(rider.latitude),
+        float(rider.longitude),
+        float(new_ride.pickup_latitude),
+        float(new_ride.pickup_longitude)
         )
         if distance <= 5:
             data = RideSerializer(new_ride).data
