@@ -151,7 +151,7 @@ WebScoket Endpoints (Postman)
 -> Enter this EndPoint (ws://127.0.0.1:8000/ws/riders/availability/) (-> This WebSocket is for to check rider availability.)
 
 -> For Create Ride
-    ws://127.0.0.1:8000/ws/riders/user_ride/?token={Access Token of Login User}
+    ws://127.0.0.1:8000/ws/riders/user_ride/{user_id}/
 
     Enter this data is Message(Ex.)
     
