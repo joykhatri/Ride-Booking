@@ -42,34 +42,42 @@ def distance_km(lat1, lon1, lat2, lon2):
     r = 6371
     return c*r
 
-def broadcast_new_ride():
+def broadcast_new_ride(new_ride):
     from asgiref.sync import async_to_sync
     from channels.layers import get_channel_layer
     from riders.models import RiderProfile, Ride
     from riders.serializers import RideSerializer
+    from riders.utils import distance_km
 
     channel_layer = get_channel_layer()
 
     riders = RiderProfile.objects.filter(is_available=True, role="RIDER")
-    rides = Ride.objects.filter(status="requested")
 
     for rider in riders:
         if rider.latitude is None or rider.longitude is None:
             continue
 
-        data = RideSerializer(rides, many=True).data
-
-        async_to_sync(channel_layer.group_send)(
-            f"rider_{rider.id}",
-            {
-                "type": "rides_update",
-                "data": {
-                    "status": True,
-                    "message": "Nearby Rides are",
-                    "data": data
-                }
-            }
+        distance = distance_km(
+        rider.latitude,
+        rider.longitude,
+        new_ride.pickup_latitude,
+        new_ride.pickup_longitude
         )
+        if distance <= 5:
+            data = RideSerializer(new_ride).data
+
+            async_to_sync(channel_layer.group_send)(
+                f"rider_{rider.id}",
+                {
+                    "type": "rides_update",
+                    "data": {
+                        "status": True,
+                        "message": "Nearby Rides are",
+                        "data": data
+                    }
+                }
+            )
+
 
 ###########################################################################
 #                       Rider Live Location Module                        #
