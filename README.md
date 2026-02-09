@@ -150,6 +150,25 @@ WebScoket Endpoints (Postman)
 -> Select WebSocket in Postman
 -> Enter this EndPoint (ws://127.0.0.1:8000/ws/riders/availability/) (-> This WebSocket is for to check rider availability.)
 
+-> For Create Ride
+    ws://127.0.0.1:8000/ws/riders/user_ride/?token={Access Token of Login User}
+
+    Enter this data is Message(Ex.)
+    
+    {
+    "action": "create_ride",
+    "data": {
+        "pickup_location": "street A",
+        "pickup_latitude": 23.0197999,
+        "pickup_longitude": 72.5268579,
+        "drop_location": "street B",
+        "drop_longitude": 12.858373,
+        "drop_latitude": 77.600835,
+        "vehicle_type": "CAR",
+        "charges": 150
+    }
+}
+
 -> For Create Ride WebSocket (When user create new ride, then all nearby rider can see that ride details)
     ws://127.0.0.1:8000/ws/riders/new_ride/{rider_id}
 
