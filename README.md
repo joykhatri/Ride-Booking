@@ -108,7 +108,7 @@ enter access token in authorization (Auth Type - Bearer Token)
     "drop_latitude": 77.640835,
     "vehicle_type": "CAR",
     "charges": 150
-}
+    }
 
 13. Update Ride
     PUT /api/riders/ride/{id}/
