@@ -1,6 +1,6 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-from asgiref.sync import sync_to_async
+from asgiref.sync import sync_to_async, async_to_sync
 from riders.utils import validate_coordinates ,rider_location
 
 
@@ -99,6 +99,7 @@ class RideConsumer(AsyncWebsocketConsumer):
     async def rides_update(self, event):
         await self.send(text_data=json.dumps(event["data"]))
 
+
 ###########################################################################
 #                       Rider Live Location Module                        #
 ###########################################################################
@@ -145,3 +146,47 @@ class RiderLocationConsumer(AsyncWebsocketConsumer):
     async def location_update(self, event):
         await self.send(text_data=json.dumps(event["data"]))
 
+###########################################################################
+#                           Create Ride Module                            #
+###########################################################################
+
+class UserRideConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        if (self.scope["user"].is_anonymous or
+            self.scope["user"].role == "RIDER"):
+            await self.close()
+        else:
+            self.user = self.scope["user"]
+            await self.accept()
+
+    async def receive(self, text_data):
+        from riders.models import Ride
+        from asgiref.sync import sync_to_async
+        from riders.utils import broadcast_new_ride
+
+        data = json.loads(text_data)
+        action = data.get("action")
+
+        if action == "create_ride":
+            ride_data = data.get("data")
+
+            ride = await sync_to_async(Ride.objects.create, thread_sensitive=True)(
+                user_name = self.user.name,
+                user_phone = self.user.phone,
+                pickup_location = ride_data["pickup_location"],
+                pickup_latitude = ride_data["pickup_latitude"],
+                pickup_longitude = ride_data["pickup_longitude"],
+                drop_location = ride_data["drop_location"],
+                drop_latitude = ride_data["drop_latitude"],
+                drop_longitude = ride_data["drop_longitude"],
+                vehicle_type = ride_data["vehicle_type"],
+                charges = ride_data["charges"]
+            )
+
+            await sync_to_async(broadcast_new_ride)(ride)
+
+            await self.send(text_data=json.dumps({
+                "status": True,
+                "message": "Ride Created Successfully",
+                "data": ride.id
+            }))
