@@ -1,7 +1,6 @@
 from channels.db import database_sync_to_async
 
 class JWTAuthMiddleware:
-
     def __init__(self, inner):
         self.inner = inner
 
