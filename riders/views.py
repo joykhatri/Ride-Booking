@@ -879,7 +879,7 @@ class RideViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            ride = Ride.objects.get(pk=pk, rider=user)
+            ride = Ride.objects.get(pk=pk)
         except Ride.DoesNotExist:
             return Response({
                 "status": False,
@@ -1076,7 +1076,6 @@ class RiderPaymentViewSet(viewsets.ModelViewSet):
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)
 
-
         if ride.status != "completed":
             return Response({
                 "status": False,
@@ -1140,4 +1139,3 @@ class RiderPaymentViewSet(viewsets.ModelViewSet):
             "message": "Payment paid",
             "data": RiderPaymentSerializer(payment).data
         }, status=status.HTTP_202_ACCEPTED)
-
