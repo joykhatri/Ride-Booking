@@ -61,6 +61,7 @@ class Ride(models.Model):
     user = models.ForeignKey(RiderProfile, on_delete=models.CASCADE, related_name='rides_as_user')
     user_name = models.CharField(max_length=100)
     user_phone = models.CharField(max_length=20)
+    otp = models.CharField(max_length=6, blank=True, null=True)
     pickup_location = models.CharField(max_length=250)
     pickup_latitude = models.DecimalField(max_digits=9, decimal_places=7)
     pickup_longitude = models.DecimalField(max_digits=9, decimal_places=7)
@@ -96,3 +97,13 @@ class RiderPayment(models.Model):
     def __str__(self):
         return f"Payment for Ride {self.ride.id} - Paid: {self.paid}"
     
+class Ratings(models.Model):
+    ride = models.OneToOneField(Ride, on_delete=models.CASCADE)
+    user = models.ForeignKey(RiderProfile, on_delete=models.CASCADE, related_name='ratings_given')
+    rider = models.ForeignKey(RiderProfile, on_delete=models.CASCADE, related_name='ratings_received')
+    rating = models.PositiveSmallIntegerField()
+    feedback = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Rating {self.rating} for Rider {self.rider.id}"
