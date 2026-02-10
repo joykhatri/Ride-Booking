@@ -97,3 +97,39 @@ def rider_location(lat, lng):
         "latitude": float(lat),
         "longitude": float(lng)
     }
+
+
+###########################################################################
+#                       Ride Timeout Module                               #
+###########################################################################
+
+async def auto_close_ride(channel_layer, ride_id, delay_seconds=300):
+    import asyncio
+    from asgiref.sync import sync_to_async
+    from riders.models import Ride
+
+    try:
+        await asyncio.sleep(delay_seconds)
+    except asyncio.CancelledError:
+        return
+
+    try:
+        ride = await sync_to_async(Ride.objects.get)(id=ride_id)
+    except Ride.DoesNotExist:
+        return
+    
+    if ride.status == "requested":
+        ride.status = "closed"
+        await sync_to_async(ride.save)()
+
+    await channel_layer.group_send(
+        f"user_{ride.user_id}",
+        {
+            "type": "ride_declined",
+            "data": {
+                "ride_id": ride.id,
+                "status": "timeout",
+                "message": "No rider accept your ride"
+            }
+        }
+    )
