@@ -3,6 +3,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async, async_to_sync
 from riders.utils import validate_coordinates ,rider_location
 
+ride_timeout_tasks = {}
 
 ###########################################################################
 #                       Rider Avialability Module                         #
@@ -48,23 +49,37 @@ class RiderAvailabilityConsumer(AsyncWebsocketConsumer):
 ###########################################################################
 
 class UserRideConsumer(AsyncWebsocketConsumer):
+    ride_timeout_tasks = {}
     async def connect(self):
         self.user_id = self.scope["url_route"]["kwargs"]["user_id"]
+        self.group_name = f"user_{self.user_id}"
 
         from riders.models import RiderProfile
         try:
             self.user = await sync_to_async(RiderProfile.objects.get)(id=self.user_id)
             if self.user.role == "RIDER":
                 await self.close()
-            else:
-                await self.accept()
+                return
+            
+            await self.channel_layer.group_add(
+                self.group_name,
+                self.channel_name
+            )
+            await self.accept()
         except RiderProfile.DoesNotExist:
             await self.close()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            self.group_name,
+            self.channel_name
+        )
 
     async def receive(self, text_data):
         from riders.models import Ride
         from asgiref.sync import sync_to_async
-        from riders.utils import broadcast_new_ride
+        from riders.utils import broadcast_new_ride, auto_close_ride
+        import asyncio
 
         data = json.loads(text_data)
         action = data.get("action")
@@ -87,6 +102,8 @@ class UserRideConsumer(AsyncWebsocketConsumer):
             )
 
             await sync_to_async(broadcast_new_ride)(ride)
+            task = asyncio.create_task(auto_close_ride(self.channel_layer, ride.id, delay_seconds=300))
+            ride_timeout_tasks[ride.id] = task
 
             await self.send(text_data=json.dumps({
                 "status": True,
@@ -98,6 +115,13 @@ class UserRideConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "status": True,
             "message": "Ride Accepted",
+            "data": event["data"]
+        }))
+
+    async def ride_declined(self, event):
+        await self.send(text_data=json.dumps({
+            "status": True,
+            "message": "Ride Declined",
             "data": event["data"]
         }))
             
@@ -130,10 +154,7 @@ class RideConsumer(AsyncWebsocketConsumer):
         if data.get("action") == "accept_ride":
             await self.accept_ride(data.get("ride_id"))
         elif data.get("action") == "decline_ride":
-            await self.send(text_data=json.dumps({
-                "status": True,
-                "message": "Ride declined"
-            }))
+            await self.decline_ride(data.get("ride_id"))
 
     async def send_nearby_rides(self):
         from riders.models import Ride, RiderProfile
@@ -170,37 +191,61 @@ class RideConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps(event["data"]))
 
     async def accept_ride(self, ride_id):
-        from riders.models import Ride, RiderProfile
-        from django.db import transaction
+        def accept_ride_db_save():
+            from riders.models import Ride, RiderProfile
+            from django.db import transaction
+            import random
 
-        async with transaction.atomic():
-            ride = await sync_to_async(
-                Ride.objects.select_for_update().get
-            )(id=ride.id)
+            with transaction.atomic():
+                ride = Ride.objects.select_for_update().get(id=ride_id)
 
-        if ride.status != "requested":
+                if ride.status != "requested":
+                    return None
+        
+                ride.status = "accepted"
+                ride.rider_id = self.rider_id
+                otp = str(random.randint(100000, 999999))
+                ride.otp = otp
+                ride.save()
+
+                rider = RiderProfile.objects.get(id=self.rider_id)
+                rider.is_available = False
+                rider.save()
+
+                vehicle = rider.vehicle
+
+                return ride, rider, vehicle, otp
+            
+        result = await sync_to_async(accept_ride_db_save)()
+
+        if not result:
             await self.send(text_data=json.dumps({
                 "status": False,
                 "message": "Ride already taken"
             }))
             return
         
-        ride.status = "accepted"
-        ride.rider_id = self.rider_id
-        await sync_to_async(ride.save)()
+        ride, rider, vehicle, otp = result
 
-        await sync_to_async(
-            RiderProfile.objects.filter(id=self.rider_id).update
-        )(is_available=False)
-
+        from .consumers import ride_timeout_tasks
+        task = ride_timeout_tasks.pop(ride.id, None)
+        if task and not task.done():
+            task.cancel()
+        
         await self.channel_layer.group_send(
-            f"user_{ride.user_phone}",
+            f"user_{ride.user_id}",
             {
                 "type": "ride_accepted",
                 "data": {
+                    "status": "accepted",
                     "ride_id": ride.id,
-                    "rider_id": self.rider_id,
-                    "status": "accepted"
+                    "otp": otp,
+                    "rider": {
+                        "id": self.rider_id,
+                        "name": rider.name,
+                        "phone": rider.phone,
+                        "vehicle_number": vehicle.vehicle_number
+                    }
                 }
             }
         )
@@ -209,6 +254,34 @@ class RideConsumer(AsyncWebsocketConsumer):
             "status": True,
             "message": "Ride accepted successfully"
         }))
+
+    async def decline_ride(self, ride_id):
+        from riders.models import Ride
+
+        ride = await sync_to_async(Ride.objects.get)(id=ride_id)
+
+        if ride.status == "accepted" and ride.rider_id == self.rider_id:
+            ride.status = "requested"
+            ride.rider_id = None
+            ride.otp = None
+            await sync_to_async(ride.save)()
+
+            await self.channel_layer.group_send(
+                f"user_{ride.user_id}",
+                {
+                    "type": "ride_declined",
+                    "data": {
+                        "ride_id": ride.id,
+                        "rider_id": self.rider_id,
+                        "status": "declined"
+                    }
+                }
+            )
+        else:
+            await self.send(text_data=json.dumps({
+                "status": True,
+                "message": "Ride Declined"
+            }))
 
 ###########################################################################
 #                       Rider Live Location Module                        #
