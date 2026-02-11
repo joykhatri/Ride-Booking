@@ -106,14 +106,3 @@ class RiderPayment(models.Model):
 
     def __str__(self):
         return f"Payment for Ride {self.ride.id} - Paid: {self.paid}"
-    
-class Ratings(models.Model):
-    ride = models.OneToOneField(Ride, on_delete=models.CASCADE)
-    user = models.ForeignKey(RiderProfile, on_delete=models.CASCADE, related_name='ratings_given')
-    rider = models.ForeignKey(RiderProfile, on_delete=models.CASCADE, related_name='ratings_received')
-    rating = models.PositiveSmallIntegerField()
-    feedback = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Rating {self.rating} for Rider {self.rider.id}"
