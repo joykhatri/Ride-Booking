@@ -52,9 +52,19 @@ class Vehicle(models.Model):
         ('CAR', 'Car'),
         ('AUTO', 'Auto')
     ])
+    VEHICLE_TYPE_IDS = {
+        'BIKE': 1,
+        'CAR': 2,
+        'AUTO': 3
+    }
+    vehicle_type_id = models.PositiveIntegerField(editable=False)
+
+    def save(self, *args, **kwargs):
+        self.vehicle_type_id = self.VEHICLE_TYPE_IDS[self.vehicle_type]
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.vehicle_number
+        return f"{self.vehicle_type} ({self.vehicle_type_id}) - {self.vehicle_number}"
     
 class Ride(models.Model):
     rider = models.ForeignKey(RiderProfile, on_delete=models.CASCADE, null=True, blank=True)
@@ -96,3 +106,14 @@ class RiderPayment(models.Model):
 
     def __str__(self):
         return f"Payment for Ride {self.ride.id} - Paid: {self.paid}"
+    
+class Ratings(models.Model):
+    ride = models.OneToOneField(Ride, on_delete=models.CASCADE)
+    user = models.ForeignKey(RiderProfile, on_delete=models.CASCADE, related_name='ratings_given')
+    rider = models.ForeignKey(RiderProfile, on_delete=models.CASCADE, related_name='ratings_received')
+    rating = models.PositiveSmallIntegerField()
+    feedback = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Rating {self.rating} for Rider {self.rider.id}"

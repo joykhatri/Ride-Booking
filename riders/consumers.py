@@ -18,7 +18,6 @@ class RiderAvailabilityConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
         await self.accept()
-        await self.send_available_riders()
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
@@ -26,20 +25,57 @@ class RiderAvailabilityConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
-    async def send_available_riders(self):
-        from riders.models import RiderProfile
-        riders = await sync_to_async(list)(
-            RiderProfile.objects.filter(role="RIDER", is_available=True).values(
-                "id", "name"
-            )
-        )
-        response = {
-            "status": True,
-            "message": "Available Riders are",
-            "data": riders
-        }
-        await self.send(text_data=json.dumps(response))
+    async def receive(self, text_data):
+        from riders.models import RiderProfile, Vehicle
+        from riders.utils import distance_km
+        from asgiref.sync import sync_to_async
 
+        data = json.loads(text_data)
+        user_lat = data.get("latitude")
+        user_lng = data.get("longitude")
+
+        if not validate_coordinates(user_lat, user_lng):
+            await self.send(text_data=json.dumps({
+                "status": False,
+                "message": "Invalid Coordinates"
+            }))
+            return
+
+        riders = await sync_to_async(list)(
+            RiderProfile.objects.filter(role="RIDER", is_available=True).select_related('vehicle')
+        )
+
+        nearby_riders = []
+        for rider in riders:
+            if rider.latitude is None or rider.longitude is None:
+                continue
+
+            distance = distance_km(
+                float(user_lat),
+                float(user_lng),
+                float(rider.latitude),
+                float(rider.longitude),
+            )
+
+            if distance <= 5:
+                vehicle_type = None
+                try:
+                    vehicle_type = rider.vehicle.vehicle_type
+                except Vehicle.DoesNotExist:
+                    vehicle_type = "UNKNOWN"
+                    
+                nearby_riders.append({
+                    "latitude": float(rider.latitude),
+                    "longitude": float(rider.longitude),
+                    "vehicle_type": vehicle_type
+                })
+
+        await self.send(text_data=json.dumps({
+            "status": True,
+            "message": "Available Riders",
+            "data": nearby_riders
+        }))
+    
     async def rider_update(self, event):
         await self.send(text_data=json.dumps(event["data"]))
 
@@ -162,10 +198,10 @@ class RideConsumer(AsyncWebsocketConsumer):
         from riders.utils import distance_km
         from asgiref.sync import sync_to_async
 
-        rider = await sync_to_async(RiderProfile.objects.get)(id=self.rider_id)
-        
+        rider = await sync_to_async(RiderProfile.objects.select_related("vehicle").get)(id=self.rider_id)
+        rider_vehicle_type = rider.vehicle.vehicle_type_id
         rides = await sync_to_async(list)(
-            Ride.objects.filter(status="requested")
+            Ride.objects.filter(status="requested", vehicle_type=rider_vehicle_type)
         )
 
         nearby_rides = []
@@ -217,6 +253,9 @@ class RideConsumer(AsyncWebsocketConsumer):
                 return ride, rider, vehicle, otp
             
         result = await sync_to_async(accept_ride_db_save)()
+        
+        from riders.utils import broadcast_available_riders
+        await sync_to_async(broadcast_available_riders)()
 
         if not result:
             await self.send(text_data=json.dumps({

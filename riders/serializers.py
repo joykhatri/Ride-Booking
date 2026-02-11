@@ -45,7 +45,8 @@ class VehicleSerializer(serializers.ModelSerializer):
 class RideSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ride
-        fields = '__all__'
+        # fields = '__all__'
+        fields = ['id', 'user_name', 'user_phone', 'pickup_location', 'pickup_latitude', 'pickup_longitude', 'drop_location', 'drop_latitude', 'drop_longitude', 'vehicle_type', 'status', 'charges', 'user']
         read_only_fields = ['user', 'user_name', 'user_phone', 'rider', 'status']
 
     def validate_user_phone(self, value):
@@ -61,4 +62,9 @@ class RideSerializer(serializers.ModelSerializer):
 class RiderPaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = RiderPayment
+        fields = '__all__'
+
+class RatingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ratings
         fields = '__all__'

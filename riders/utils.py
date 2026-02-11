@@ -8,11 +8,15 @@ def broadcast_available_riders():
     from riders.models import RiderProfile
     channel_layer = get_channel_layer()
 
-    riders = list(
-        RiderProfile.objects.filter(role="RIDER", is_available=True).values(
-            "id", "name"
-        )
-    )
+    riders_queryset = RiderProfile.objects.filter(role="RIDER", is_available=True, latitude__isnull=False, longitude__isnull=False).values(
+            "latitude", "longitude")
+    
+    riders = [{
+        "latitude": float(r["latitude"]),
+        "longitude": float(r["longitude"]),
+    }
+    for r in riders_queryset
+    ]
 
     async_to_sync(channel_layer.group_send)(
         "rider_availability",
@@ -52,10 +56,13 @@ def broadcast_new_ride(new_ride):
 
     channel_layer = get_channel_layer()
 
-    riders = RiderProfile.objects.filter(is_available=True, role="RIDER")
+    riders = RiderProfile.objects.filter(is_available=True, role="RIDER").select_related("vehicle")
 
     for rider in riders:
         if rider.latitude is None or rider.longitude is None:
+            continue
+
+        if rider.vehicle.vehicle_type_id != new_ride.vehicle_type:
             continue
 
         distance = distance_km(
