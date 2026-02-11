@@ -170,7 +170,7 @@ WebScoket Endpoints (Postman)
         "drop_location": "street B",
         "drop_longitude": 12.858373,
         "drop_latitude": 77.600835,
-        "vehicle_type": "CAR",
+        "vehicle_type": {vehicle_type_id},
         "charges": 150
     }
 }
