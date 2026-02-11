@@ -148,7 +148,13 @@ daphne -p 8000 project.asgi:application
 
 WebScoket Endpoints (Postman)
 -> Select WebSocket in Postman
--> Enter this EndPoint (ws://127.0.0.1:8000/ws/riders/availability/) (-> This WebSocket is for to check rider availability.)
+-> Enter this EndPoint (ws://127.0.0.1:8000/ws/riders/availability/{user_id}) (-> This WebSocket is for to check nearby rider availability.)
+    Enter user latitude & longitude in WebSocket message.
+    Ex.    {
+            "latitude": 23.053420,
+            "longitude": 72.521230
+            }
+    Give available riders lat & lng that nearby distance is <= 5 km.
 
 -> For Create Ride
     ws://127.0.0.1:8000/ws/riders/user_ride/{user_id}/
