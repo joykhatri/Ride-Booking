@@ -60,7 +60,7 @@ class RiderAvailabilityConsumer(AsyncWebsocketConsumer):
             if distance <= 5:
                 vehicle_type = None
                 try:
-                    vehicle_type = rider.vehicle.vehicle_type
+                    vehicle_type = rider.vehicle.vehicle_type_id
                 except Vehicle.DoesNotExist:
                     vehicle_type = "UNKNOWN"
                     
@@ -160,6 +160,13 @@ class UserRideConsumer(AsyncWebsocketConsumer):
             "message": "Ride Declined",
             "data": event["data"]
         }))
+
+    async def ride_picked_up(self, event):
+        await self.send(text_data=json.dumps({
+            "status": True,
+            "message": "Ride Picked up",
+            "data": event["data"]
+        }))
             
 
 ###########################################################################
@@ -191,6 +198,11 @@ class RideConsumer(AsyncWebsocketConsumer):
             await self.accept_ride(data.get("ride_id"))
         elif data.get("action") == "decline_ride":
             await self.decline_ride(data.get("ride_id"))
+        elif data.get("action") == "picked_up":
+            await self.picked_up_ride(
+                ride_id = data.get("ride_id"),
+                entered_otp = data.get("otp")                     
+            )
 
     async def send_nearby_rides(self):
         from riders.models import Ride, RiderProfile
@@ -321,6 +333,38 @@ class RideConsumer(AsyncWebsocketConsumer):
                 "status": True,
                 "message": "Ride Declined"
             }))
+
+    async def picked_up_ride(self, ride_id, entered_otp):
+        from riders.models import Ride
+        from asgiref.sync import sync_to_async
+        
+        ride = await sync_to_async(Ride.objects.get)(id=ride_id)
+
+        if str(ride.otp) != str(entered_otp):
+            await self.send(text_data=json.dumps({
+                "status": False,
+                "message": "Invalid OTP"
+            }))
+            return
+
+        ride.status = "picked_up"
+        await sync_to_async(ride.save)()
+
+        await self.channel_layer.group_send(
+            f"user_{ride.user_id}",
+            {
+                "type": "ride_picked_up",
+                "data": {
+                    "status": "picked_up",
+                    "ride_id": ride_id,
+                    }
+                }
+            )
+        
+        await self.send(text_data=json.dumps({
+            "status": True,
+            "message": "Ride Picked up"
+        }))
 
 ###########################################################################
 #                       Rider Live Location Module                        #
