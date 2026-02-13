@@ -58,13 +58,20 @@ class Vehicle(models.Model):
         'AUTO': 3
     }
     vehicle_type_id = models.PositiveIntegerField(editable=False)
+    rate_per_km = models.DecimalField(max_digits=6, decimal_places=2, editable=False)
+    VEHICLE_RATES = {
+        'BIKE': 4,
+        'CAR': 15,
+        'AUTO': 9
+    }
 
     def save(self, *args, **kwargs):
         self.vehicle_type_id = self.VEHICLE_TYPE_IDS[self.vehicle_type]
+        self.rate_per_km = self.VEHICLE_RATES[self.vehicle_type]
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.vehicle_type} ({self.vehicle_type_id}) - {self.vehicle_number}"
+        return f"{self.vehicle_type} - {self.vehicle_number}"
     
 class Ride(models.Model):
     rider = models.ForeignKey(RiderProfile, on_delete=models.CASCADE, null=True, blank=True)
@@ -106,3 +113,14 @@ class RiderPayment(models.Model):
 
     def __str__(self):
         return f"Payment for Ride {self.ride.id} - Paid: {self.paid}"
+    
+class Ratings(models.Model):
+    ride = models.OneToOneField(Ride, on_delete=models.CASCADE)
+    user = models.ForeignKey(RiderProfile, on_delete=models.CASCADE, related_name='ratings_given')
+    rider = models.ForeignKey(RiderProfile, on_delete=models.CASCADE, related_name='ratings_received')
+    rating = models.PositiveSmallIntegerField()
+    feedback = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Rating {self.rating} for Rider {self.rider.id}"
