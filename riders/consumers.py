@@ -114,7 +114,7 @@ class UserRideConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         from riders.models import Ride
         from asgiref.sync import sync_to_async
-        from riders.utils import broadcast_new_ride, auto_close_ride
+        from riders.utils import broadcast_new_ride, auto_close_ride, calculate_charges
         import asyncio
 
         data = json.loads(text_data)
@@ -122,6 +122,15 @@ class UserRideConsumer(AsyncWebsocketConsumer):
 
         if action == "create_ride":
             ride_data = data.get("data")
+    
+            charges = await sync_to_async(calculate_charges)(
+                ride_data["pickup_latitude"],
+                ride_data["pickup_longitude"],
+                ride_data["drop_latitude"],
+                ride_data["drop_longitude"],
+                ride_data["vehicle_type"]
+            )
+            print(charges)
 
             ride = await sync_to_async(Ride.objects.create)(
                 user = self.user,
@@ -134,7 +143,7 @@ class UserRideConsumer(AsyncWebsocketConsumer):
                 drop_latitude = ride_data["drop_latitude"],
                 drop_longitude = ride_data["drop_longitude"],
                 vehicle_type = ride_data["vehicle_type"],
-                charges = ride_data["charges"]
+                charges = charges
             )
 
             await sync_to_async(broadcast_new_ride)(ride)
@@ -165,6 +174,13 @@ class UserRideConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "status": True,
             "message": "Ride Picked up",
+            "data": event["data"]
+        }))
+
+    async def ride_finished(self, event):
+        await self.send(text_data=json.dumps({
+            "status": True,
+            "message": "Ride Finished",
             "data": event["data"]
         }))
             
@@ -203,6 +219,8 @@ class RideConsumer(AsyncWebsocketConsumer):
                 ride_id = data.get("ride_id"),
                 entered_otp = data.get("otp")                     
             )
+        elif data.get("action") == "finish_ride":
+            await self.finish_ride(data.get("ride_id"))
 
     async def send_nearby_rides(self):
         from riders.models import Ride, RiderProfile
@@ -365,6 +383,33 @@ class RideConsumer(AsyncWebsocketConsumer):
             "status": True,
             "message": "Ride Picked up"
         }))
+
+    async def finish_ride(self, ride_id):
+        from riders.models import Ride
+        from asgiref.sync import sync_to_async
+
+        ride = await sync_to_async(Ride.objects.get)(id=ride_id)
+
+        ride.status = "finished"
+        await sync_to_async(ride.save)()
+
+        await self.channel_layer.group_send(
+            f"user_{ride.user_id}",
+            {
+                "type": "ride_finished",
+                "data": {
+                    "status": "ride_finished",
+                    "ride_id": ride_id,
+                }
+            }
+        )
+
+        await self.send(text_data=json.dumps({
+            "status": True,
+            "message": "Ride Finished"
+        }))
+
+
 
 ###########################################################################
 #                       Rider Live Location Module                        #

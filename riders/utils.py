@@ -140,3 +140,26 @@ async def auto_close_ride(channel_layer, ride_id, delay_seconds=300):
             }
         }
     )
+
+
+###########################################################################
+#                         Calculate Price Module                          #
+###########################################################################
+
+def calculate_charges(pickup_lat, pickup_lng, drop_lat, drop_lng, vehicle_type):
+    from riders.models import Vehicle
+    
+    pickup_lat = float(pickup_lat)
+    pickup_lng = float(pickup_lng)
+    drop_lat = float(drop_lat)
+    drop_lng = float(drop_lng)
+
+    distance = distance_km(pickup_lat, pickup_lng, drop_lat, drop_lng)
+
+    vehicle = Vehicle.objects.filter(vehicle_type_id=int(vehicle_type)).first()
+    if vehicle is None:
+        return 0
+    
+    rate= float(vehicle.rate_per_km)
+    total = distance * rate
+    return round(total, 2)
