@@ -32,30 +32,37 @@ python -m venv .venv
 .venv\Scripts\activate
 ```
 
-## Linux/macOS:
+### Linux/macOS:
 ```bash
 source .venv/bin/activate
 ```
 
-3️⃣ Install Dependencies
+### 3️⃣ Install Dependencies
+```bash
 pip install django djangorestframework mysqlclient
 pip install djangorestframework-simplejwt     # JWT Authentication
 pip install channels                          # WebSocket support
 pip install daphne                            # ASGI server for WebSocket
+```
 
-4️⃣ Start Django Project & App
+### 4️⃣ Start Django Project & App
+```bash
 django-admin startproject project .
 django-admin startapp riders
+```
 
-5️⃣ Add Apps to INSTALLED_APPS (project/settings.py)
+### 5️⃣ Add Apps to INSTALLED_APPS (project/settings.py)
+```bash
 INSTALLED_APPS = [
     ...
     'rest_framework',
     'riders',
     'channels',
 ]
+```
 
-6️⃣ Configure MySQL Database (settings.py)
+### 6️⃣ Configure MySQL Database (settings.py)
+```bash
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', 
@@ -66,23 +73,29 @@ DATABASES = {
         'PORT': '3306',
     }
 }
+```
 
-7️⃣ Apply Migrations
+### 7️⃣ Apply Migrations
+```bash
 python manage.py makemigrations
 python manage.py migrate
+```
 
-8️⃣ Run Server
-Development server:
+### 8️⃣ Run Server
+### Development server:
+```bash
 python manage.py runserver
+```
 
-
-ASGI/Daphne server (for WebSocket):
+### ASGI/Daphne server (for WebSocket):
+```bash
 $env:DJANGO_SETTINGS_MODULE="project.settings"   # Windows PowerShell
 daphne -p 8000 project.asgi:application
+```
 
-🔑 API Endpoints
+## 🔑 API Endpoints
 
-User Management
+### User Management
 | Method | Endpoint                    | Description    |
 | ------ | --------------------------- | -------------- |
 | POST   | `/api/riders/profile/`      | Create user    |
@@ -91,6 +104,7 @@ User Management
 | PUT    | `/api/riders/profile/{id}/` | Update user    |
 | DELETE | `/api/riders/profile/{id}/` | Delete user    |
 
+```bash
 1. Create User
    {
     "name": "",
@@ -99,19 +113,21 @@ User Management
     "password": "",
     "role": ""
 }
+```
 
-
-Login
+### Login
+```bash
 POST /api/riders/login/
 {
   "email": "",
   "password": ""
 }
+```
 -> Returns access and refresh tokens
 -> Use access token in Authorization header for protected endpoints:
 Authorization: Bearer <access_token>
 
-Vehicle Management
+### Vehicle Management
 | Method | Endpoint                    | Description       |
 | ------ | --------------------------- | ----------------- |
 | POST   | `/api/riders/vehicle/`      | Create vehicle    |
@@ -120,13 +136,15 @@ Vehicle Management
 | PUT    | `/api/riders/vehicle/{id}/` | Update vehicle    |
 | DELETE | `/api/riders/vehicle/{id}/` | Delete vehicle    |
 
+```bash
 Create Vehicle
 {
   "vehicle_number": "",
   "vehicle_type": ""
 }
+```
 
-Ride Management
+### Ride Management
 | Method | Endpoint                          | Description   |
 | ------ | --------------------------------- | ------------- |
 | POST   | `/api/riders/ride/`               | Create ride   |
@@ -137,6 +155,7 @@ Ride Management
 | POST   | `/api/riders/ride/{id}/decline/`  | Decline ride  |
 | POST   | `/api/riders/ride/{id}/complete/` | Complete ride |
 
+```bash
 Create Ride
     {
     "pickup_location": "street A",
@@ -148,28 +167,35 @@ Create Ride
     "vehicle_type": "CAR",
     "charges": 150
     }
+```
 
-Payment Management
+### Payment Management
 | Method | Endpoint                                    | Description          |
 | ------ | ------------------------------------------- | -------------------- |
 | POST   | `/api/riders/payments/{id}/create_payment/` | Create payment       |
 | POST   | `/api/riders/payments/{id}/mark_paid/`      | Mark payment as paid |
 
 
-🌐 WebSocket Endpoints
-1️⃣ Rider Availability
+## 🌐 WebSocket Endpoints
+### 1️⃣ Rider Availability
+```bash
 ws://127.0.0.1:8000/ws/riders/availability/{user_id}
-
+```
+```bash
 Message Example:
 {
   "latitude": 23.053420,
   "longitude": 72.521230
 }
+```
 Returns available riders within 5 km.
 
-2️⃣ User Ride Events (Create Ride)
+### 2️⃣ User Ride Events (Create Ride)
+```bash
 ws://127.0.0.1:8000/ws/riders/user_ride/{user_id}/
+```
 
+```bash
 Create ride example:
 {
   "action": "create_ride",
@@ -184,20 +210,27 @@ Create ride example:
     "charges": 150
   }
 }
+```
 
-3️⃣ Notify Nearby Riders of New Ride
+### 3️⃣ Notify Nearby Riders of New Ride
+```bash
 ws://127.0.0.1:8000/ws/riders/new_ride/{rider_id}
+```
 
-4️⃣ Rider Live Location Updates
+###4️⃣ Rider Live Location Updates
+```bash
 ws://127.0.0.1:8000/ws/riders/location/{rider_id}/
+```
 
+```bash
 Message Example:
 {
   "latitude": 23.0197999,
   "longitude": 72.5268579
 }
+```
 Updates DB and broadcasts new location in real-time.
 
-⚡ WebSocket Notes
+### ⚡ WebSocket Notes
 Riders availability updates automatically when ride is accepted/completed.
 Only available riders appear in WebSocket responses for nearby users.
