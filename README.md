@@ -27,11 +27,15 @@ Supports **user management, rides, vehicles, payments, JWT authentication, and r
 python -m venv .venv
 ```
 
-2️⃣ Activate Virtual Environment
+### 2️⃣ Activate Virtual Environment
+```bash
 .venv\Scripts\activate
+```
 
-Linux/macOS:
+## Linux/macOS:
+```bash
 source .venv/bin/activate
+```
 
 3️⃣ Install Dependencies
 pip install django djangorestframework mysqlclient
