@@ -217,7 +217,7 @@ Create ride example:
 ws://127.0.0.1:8000/ws/riders/new_ride/{rider_id}
 ```
 
-###4️⃣ Rider Live Location Updates
+### 4️⃣ Rider Live Location Updates
 ```bash
 ws://127.0.0.1:8000/ws/riders/location/{rider_id}/
 ```
