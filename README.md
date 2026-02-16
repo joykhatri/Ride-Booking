@@ -1,27 +1,48 @@
-This project is a Ride Booking backend built with Django, Django REST Framework, and MySQL. It supports user management, rides, vehicles, payments, JWT authentication, and real-time WebSocket updates for rider availability.
+![Python](https://img.shields.io/badge/Python-3.10-blue)
+![Django](https://img.shields.io/badge/Django-4.2-green)
+![MySQL](https://img.shields.io/badge/MySQL-8-orange)
 
-🚀 Setup Instructions
-1. Create Virtual Environment
+A **Ride Booking backend** built with Django, Django REST Framework, and MySQL.  
+Supports **user management, rides, vehicles, payments, JWT authentication, and real-time WebSocket updates** for rider availability.
+
+---
+
+## 📖 Table of Contents
+
+1. [Setup Instructions](#-setup-instructions)
+2. [API Endpoints](#-api-endpoints)
+   - [User Management](#user-management)
+   - [Vehicle Management](#vehicle-management)
+   - [Ride Management](#ride-management)
+   - [Payment Management](#payment-management)
+3. [WebSocket Endpoints](#-websocket-endpoints)
+4. [Notes](#-notes)
+
+---
+
+## 🚀 Setup Instructions
+
+### 1️⃣ Create Virtual Environment
+```bash
 python -m venv .venv
 
-2. Activate Virtual Environment
-Windows:
+2️⃣ Activate Virtual Environment
 .venv\Scripts\activate
 
 Linux/macOS:
 source .venv/bin/activate
 
-3. Install Dependencies
+3️⃣ Install Dependencies
 pip install django djangorestframework mysqlclient
 pip install djangorestframework-simplejwt     # JWT Authentication
 pip install channels                          # WebSocket support
 pip install daphne                            # ASGI server for WebSocket
 
-4. Start Django Project & App
+4️⃣ Start Django Project & App
 django-admin startproject project .
 django-admin startapp riders
 
-5. Update INSTALLED_APPS in project/settings.py
+5️⃣ Add Apps to INSTALLED_APPS (project/settings.py)
 INSTALLED_APPS = [
     ...
     'rest_framework',
@@ -29,7 +50,7 @@ INSTALLED_APPS = [
     'channels',
 ]
 
-6. Configure MySQL Database in settings.py
+6️⃣ Configure MySQL Database (settings.py)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', 
@@ -41,11 +62,11 @@ DATABASES = {
     }
 }
 
-7. Apply Migrations
+7️⃣ Apply Migrations
 python manage.py makemigrations
 python manage.py migrate
 
-8. Run Server
+8️⃣ Run Server
 Development server:
 python manage.py runserver
 
@@ -82,7 +103,8 @@ POST /api/riders/login/
   "password": ""
 }
 -> Returns access and refresh tokens
--> Use access token for Bearer Authentication in protected endpoints
+-> Use access token in Authorization header for protected endpoints:
+Authorization: Bearer <access_token>
 
 Vehicle Management
 | Method | Endpoint                    | Description       |
@@ -130,17 +152,17 @@ Payment Management
 
 
 🌐 WebSocket Endpoints
-Check Rider Availability
+1️⃣ Rider Availability
 ws://127.0.0.1:8000/ws/riders/availability/{user_id}
 
-Send:
+Message Example:
 {
   "latitude": 23.053420,
   "longitude": 72.521230
 }
-Returns nearby riders within 5 km.
+Returns available riders within 5 km.
 
-User Ride Events (Create Ride)
+2️⃣ User Ride Events (Create Ride)
 ws://127.0.0.1:8000/ws/riders/user_ride/{user_id}/
 
 Create ride example:
@@ -158,13 +180,13 @@ Create ride example:
   }
 }
 
-Notify Nearby Riders of New Ride
+3️⃣ Notify Nearby Riders of New Ride
 ws://127.0.0.1:8000/ws/riders/new_ride/{rider_id}
 
-Rider Live Location Updates
+4️⃣ Rider Live Location Updates
 ws://127.0.0.1:8000/ws/riders/location/{rider_id}/
 
-Send:
+Message Example:
 {
   "latitude": 23.0197999,
   "longitude": 72.5268579
