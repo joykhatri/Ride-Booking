@@ -1,53 +1,71 @@
-Create virtual environment.
--> python -m venv .venv
+This project is a Ride Booking backend built with Django, Django REST Framework, and MySQL. It supports user management, rides, vehicles, payments, JWT authentication, and real-time WebSocket updates for rider availability.
 
-Activate virtual environment.
--> .venv\Scripts\activate
+🚀 Setup Instructions
+1. Create Virtual Environment
+python -m venv .venv
 
-for server run.
--> python manage.py runserver
+2. Activate Virtual Environment
+Windows:
+.venv\Scripts\activate
 
-install django, django rest framework & MySQL.
--> pip install django djangorestframework
--> pip install mysqlclient
--> django-admin startproject project .
--> django-admin startapp riders
--> pip install djangorestframework-simplejwt (For JWT Authentication)
--> pip install channels (For WebSocket)
+Linux/macOS:
+source .venv/bin/activate
 
-Add apps to INSTALLED_APPS in vehicle_system/settings.py:INSTALLED_APPS = [
+3. Install Dependencies
+pip install django djangorestframework mysqlclient
+pip install djangorestframework-simplejwt     # JWT Authentication
+pip install channels                          # WebSocket support
+pip install daphne                            # ASGI server for WebSocket
+
+4. Start Django Project & App
+django-admin startproject project .
+django-admin startapp riders
+
+5. Update INSTALLED_APPS in project/settings.py
+INSTALLED_APPS = [
     ...
     'rest_framework',
     'riders',
     'channels',
 ]
 
--> After install mysql
-Add this to settings.py
+6. Configure MySQL Database in settings.py
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', 
         'NAME': 'DB_NAME',
         'USER': 'DB_USER',
         'PASSWORD': 'DB_PASSWORD',
-        'HOST': 'localhost',   # Or an IP Address that your DB is hosted on
+        'HOST': 'localhost',   # Or your DB host
         'PORT': '3306',
     }
 }
 
-after creating model.py
+7. Apply Migrations
 python manage.py makemigrations
 python manage.py migrate
 
-
-for runserver
+8. Run Server
+Development server:
 python manage.py runserver
 
-for APIs testing - Postman
 
-APIs endpoint:
+ASGI/Daphne server (for WebSocket):
+$env:DJANGO_SETTINGS_MODULE="project.settings"   # Windows PowerShell
+daphne -p 8000 project.asgi:application
+
+🔑 API Endpoints
+
+User Management
+| Method | Endpoint                    | Description    |
+| ------ | --------------------------- | -------------- |
+| POST   | `/api/riders/profile/`      | Create user    |
+| GET    | `/api/riders/profile/`      | Get all users  |
+| GET    | `/api/riders/profile/{id}/` | Get user by ID |
+| PUT    | `/api/riders/profile/{id}/` | Update user    |
+| DELETE | `/api/riders/profile/{id}/` | Delete user    |
+
 1. Create User
-   POST /api/riders/profile/
    {
     "name": "",
     "email": "",
@@ -56,49 +74,43 @@ APIs endpoint:
     "role": ""
 }
 
-2. Get User
-   GET /api/riders/profile/
 
-3. Get User by Id
-   GET /api/riders/profile/{id}/
-
-4. Update User
-   PUT /api/riders/profile/{id}/
-
-5. Delete User
-   DELETE /api/riders/profile/{id}/
-
-6. Login
-   POST /api/riders/login/
-   {
-    "email": "",
-    "password": ""
+Login
+POST /api/riders/login/
+{
+  "email": "",
+  "password": ""
 }
+-> Returns access and refresh tokens
+-> Use access token for Bearer Authentication in protected endpoints
 
-after login you have get 2 tokens (access & refresh).
-enter access token in authorization (Auth Type - Bearer Token)
+Vehicle Management
+| Method | Endpoint                    | Description       |
+| ------ | --------------------------- | ----------------- |
+| POST   | `/api/riders/vehicle/`      | Create vehicle    |
+| GET    | `/api/riders/vehicle/`      | List vehicles     |
+| GET    | `/api/riders/vehicle/{id}/` | Get vehicle by ID |
+| PUT    | `/api/riders/vehicle/{id}/` | Update vehicle    |
+| DELETE | `/api/riders/vehicle/{id}/` | Delete vehicle    |
 
-7. Create Vehicle
-   POST /api/riders/vehicle/
-   {
+Create Vehicle
+{
   "vehicle_number": "",
   "vehicle_type": ""
 }
 
-8. Get Vehicle
-   GET /api/riders/vehicle/
+Ride Management
+| Method | Endpoint                          | Description   |
+| ------ | --------------------------------- | ------------- |
+| POST   | `/api/riders/ride/`               | Create ride   |
+| PUT    | `/api/riders/ride/{id}/`          | Update ride   |
+| DELETE | `/api/riders/ride/{id}/`          | Delete ride   |
+| POST   | `/api/riders/ride/{id}/accept/`   | Accept ride   |
+| POST   | `/api/riders/ride/{id}/pickup/`   | Pick up ride  |
+| POST   | `/api/riders/ride/{id}/decline/`  | Decline ride  |
+| POST   | `/api/riders/ride/{id}/complete/` | Complete ride |
 
-9. Get Vehicle by Id
-    GET /api/riders/vehicle/{id}/
-
-10. Update Vehicle
-    PUT /api/riders/vehicle/{id}/
-
-11. Delete Vehicle
-    DELETE /api/riders/vehicle/{id}/
-
-12. Create Ride
-    POST /api/riders/ride/
+Create Ride
     {
     "pickup_location": "street A",
     "pickup_latitude": 12.971598,
@@ -110,79 +122,55 @@ enter access token in authorization (Auth Type - Bearer Token)
     "charges": 150
     }
 
-13. Update Ride
-    PUT /api/riders/ride/{id}/
-
-14. Delete Ride
-    DELETE /api/riders/ride/{id}/
-
-15. Accept Ride
-    POST /api/riders/ride/{id}/accept/
-
-16. Pick Up Ride
-    POST /api/riders/ride/{id}/pickup/
-
-17. Decline Ride
-    POST /api/riders/ride/{id}/decline/
-
-18. Complete Ride
-    POST /api/riders/ride/{id}/complete/
-
-19. Create Payment
-    POST /api/riders/payments/{id}/create_payment/
-
-20. Payment Paid
-    POST /api/riders/payments/{id}/mark_paid/
+Payment Management
+| Method | Endpoint                                    | Description          |
+| ------ | ------------------------------------------- | -------------------- |
+| POST   | `/api/riders/payments/{id}/create_payment/` | Create payment       |
+| POST   | `/api/riders/payments/{id}/mark_paid/`      | Mark payment as paid |
 
 
-WebSocket - It check real time Riders availability.
-When User book ride and rider accept, then the availabilty status is rider is automatically False and it will not show in webSocket Response, when Rider completed the ride then the availabilty status is automatically true, and it will show in WebSocket Response.
+🌐 WebSocket Endpoints
+Check Rider Availability
+ws://127.0.0.1:8000/ws/riders/availability/{user_id}
 
--> For WebSocket
-Install daphne to runserver for asgi
--> pip install daphne   
+Send:
+{
+  "latitude": 23.053420,
+  "longitude": 72.521230
+}
+Returns nearby riders within 5 km.
 
--> For run daphne server
-$env:DJANGO_SETTINGS_MODULE="project.settings"
-daphne -p 8000 project.asgi:application
+User Ride Events (Create Ride)
+ws://127.0.0.1:8000/ws/riders/user_ride/{user_id}/
 
-WebScoket Endpoints (Postman)
--> Select WebSocket in Postman
--> Enter this EndPoint (ws://127.0.0.1:8000/ws/riders/availability/{user_id}) (-> This WebSocket is for to check nearby rider availability.)
-    Enter user latitude & longitude in WebSocket message.
-    Ex.    {
-            "latitude": 23.053420,
-            "longitude": 72.521230
-            }
-    Give available riders lat & lng that nearby distance is <= 5 km.
-
--> For Create Ride
-    ws://127.0.0.1:8000/ws/riders/user_ride/{user_id}/
-
-    Enter this data is Message(Ex.)
-    
-    {
-    "action": "create_ride",
-    "data": {
-        "pickup_location": "street A",
-        "pickup_latitude": 23.0197999,
-        "pickup_longitude": 72.5268579,
-        "drop_location": "street B",
-        "drop_longitude": 12.858373,
-        "drop_latitude": 77.600835,
-        "vehicle_type": {vehicle_type_id},
-        "charges": 150
-    }
+Create ride example:
+{
+  "action": "create_ride",
+  "data": {
+    "pickup_location": "street A",
+    "pickup_latitude": 23.0197999,
+    "pickup_longitude": 72.5268579,
+    "drop_location": "street B",
+    "drop_latitude": 77.600835,
+    "drop_longitude": 12.858373,
+    "vehicle_type": 1,
+    "charges": 150
+  }
 }
 
--> For Create Ride WebSocket (When user create new ride, then all nearby rider can see that ride details)
-    ws://127.0.0.1:8000/ws/riders/new_ride/{rider_id}
+Notify Nearby Riders of New Ride
+ws://127.0.0.1:8000/ws/riders/new_ride/{rider_id}
 
--> For Rider live location (With latitude & longitude)
-    ws://127.0.0.1:8000/ws/riders/location/{rider_id}/
+Rider Live Location Updates
+ws://127.0.0.1:8000/ws/riders/location/{rider_id}/
 
-    Enter this data in Message & update the data then it also give response in websocket & also change values in DB.
-    {
-    "latitude": ,
-    "longitude": 
-    }
+Send:
+{
+  "latitude": 23.0197999,
+  "longitude": 72.5268579
+}
+Updates DB and broadcasts new location in real-time.
+
+⚡ WebSocket Notes
+Riders availability updates automatically when ride is accepted/completed.
+Only available riders appear in WebSocket responses for nearby users.
