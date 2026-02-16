@@ -16,7 +16,7 @@ Supports **user management, rides, vehicles, payments, JWT authentication, and r
    - [Ride Management](#ride-management)
    - [Payment Management](#payment-management)
 3. [WebSocket Endpoints](#-websocket-endpoints)
-4. [Notes](#-notes)
+4. [WebSocket Notes](#-notes)
 
 ---
 
