@@ -25,6 +25,7 @@ Supports **user management, rides, vehicles, payments, JWT authentication, and r
 ### 1️⃣ Create Virtual Environment
 ```bash
 python -m venv .venv
+```
 
 2️⃣ Activate Virtual Environment
 .venv\Scripts\activate
