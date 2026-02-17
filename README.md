@@ -43,6 +43,7 @@ pip install django djangorestframework mysqlclient
 pip install djangorestframework-simplejwt     # JWT Authentication
 pip install channels                          # WebSocket support
 pip install daphne                            # ASGI server for WebSocket
+pip install stripe                            # Stripe integration for payment
 ```
 
 ### 4️⃣ Start Django Project & App
