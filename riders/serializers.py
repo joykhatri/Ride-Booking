@@ -62,4 +62,5 @@ class RideSerializer(serializers.ModelSerializer):
 class RiderPaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = RiderPayment
-        fields = '__all__'
+        # fields = '__all__'
+        fields = ['id', 'stripe_payment_intent', 'amount', 'created_at', 'ride', 'rider']
