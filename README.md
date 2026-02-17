@@ -106,7 +106,7 @@ daphne -p 8000 project.asgi:application
 
 ```bash
 1. Create User
-   {
+{
     "name": "",
     "email": "",
     "phone": "",
@@ -123,9 +123,11 @@ POST /api/riders/login/
   "password": ""
 }
 ```
--> Returns access and refresh tokens
--> Use access token in Authorization header for protected endpoints:
+- Returns access and refresh tokens
+```bash
+Use access token in Authorization header for protected endpoints:
 Authorization: Bearer <access_token>
+```
 
 ### Vehicle Management
 | Method | Endpoint                    | Description       |
@@ -157,7 +159,7 @@ Create Vehicle
 
 ```bash
 Create Ride
-    {
+{
     "pickup_location": "street A",
     "pickup_latitude": 12.971598,
     "pickup_longitude": 77.594566,
@@ -166,7 +168,7 @@ Create Ride
     "drop_latitude": 77.640835,
     "vehicle_type": "CAR",
     "charges": 150
-    }
+}
 ```
 
 ### Payment Management
