@@ -7,6 +7,11 @@ from django.contrib.auth.hashers import check_password
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import action
 from riders.utils import broadcast_available_riders, broadcast_new_ride
+import stripe
+from django.conf import settings
+from rest_framework.permissions import IsAuthenticated
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 ###########################################################################
 #                       Create Profile                                    #
@@ -16,10 +21,8 @@ class RiderProfileViewSet(viewsets.ModelViewSet):
     queryset = RiderProfile.objects.all()
     serializer_class = RiderProfileSerializer
     
-    # For create any User, Rider, Admin
     def create(self, request, *args, **kwargs):
         data = request.data
-        # Check Email
         email = data.get("email")
         if not email:
             return Response({
@@ -35,7 +38,6 @@ class RiderProfileViewSet(viewsets.ModelViewSet):
             "data": None
         }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check Phone
         phone = data.get("phone")
         if not phone:
             return Response({
@@ -59,7 +61,6 @@ class RiderProfileViewSet(viewsets.ModelViewSet):
                     "data": None
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Check Role
             role = data.get("role")
             if not role:
                 return Response({
@@ -326,7 +327,6 @@ class VehicleViewSet(viewsets.ModelViewSet):
 
         allowed_vehicle_types = ["BIKE", "CAR", "AUTO"]
 
-        # Vehicle number check
         if not vehicle_number:
             return Response({
                 "status": False,
@@ -334,7 +334,6 @@ class VehicleViewSet(viewsets.ModelViewSet):
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Vehicle type check
         if not vehicle_type:
             return Response({
                 "status": False,
@@ -372,6 +371,7 @@ class VehicleViewSet(viewsets.ModelViewSet):
                 "message": "Vehicle created successfully",
                 "data": serializer.data
             }, status=status.HTTP_201_CREATED)
+        
         return Response({
             "success": False,
             "message": serializer.errors,
@@ -463,7 +463,6 @@ class VehicleViewSet(viewsets.ModelViewSet):
 
         allowed_vehicle_types = ["BIKE", "CAR", "AUTO"]
 
-        # Vehicle number check
         if not vehicle_number:
             return Response({
                 "status": False,
@@ -471,7 +470,6 @@ class VehicleViewSet(viewsets.ModelViewSet):
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Vehicle type check
         if not vehicle_type:
             return Response({
                 "status": False,
@@ -831,12 +829,10 @@ class RideViewSet(viewsets.ModelViewSet):
         ride.status = 'accepted'
         ride.save()
 
-        # Update rider availability
         rider_profile = RiderProfile.objects.get(pk=user.pk)
         rider_profile.is_available = False
         rider_profile.save()
 
-        # Broadcast updated list to WebSocket
         broadcast_available_riders()
         broadcast_new_ride()
 
@@ -1023,7 +1019,6 @@ class RideViewSet(viewsets.ModelViewSet):
         ride.status = 'completed'
         ride.save()
 
-        # Make rider available again
         rider_profile = RiderProfile.objects.get(pk=user.pk)
         rider_profile.is_available = True
         rider_profile.save()
@@ -1042,11 +1037,10 @@ class RideViewSet(viewsets.ModelViewSet):
 #                       Payment Module                                    #
 ###########################################################################
 
-class RiderPaymentViewSet(viewsets.ModelViewSet):
+class RiderPaymentIntentViewSet(viewsets.ModelViewSet):
     queryset = RiderPayment.objects.all()
     serializer_class = RiderPaymentSerializer
 
-    # Create a payment for a ride
     @action(detail=True, methods=['post'])
     def create_payment(self, request, pk=None):
         user = request.user
@@ -1076,7 +1070,7 @@ class RiderPaymentViewSet(viewsets.ModelViewSet):
                 "data": None
             }, status=status.HTTP_404_NOT_FOUND)
 
-        if ride.status != "completed":
+        if ride.status != "finished":
             return Response({
                 "status": False,
                 "message": "You do not create payment before complete the ride",
@@ -1086,19 +1080,35 @@ class RiderPaymentViewSet(viewsets.ModelViewSet):
         if RiderPayment.objects.filter(ride=ride).exists():
             return Response({
                 "status": False,
-                "message": "Payment already created",
+                "message": "Payment already Completed",
                 "data": None}, status=status.HTTP_400_BAD_REQUEST)
+        
+        amount_in_rupee = int(round(ride.charges * 100))
+        payment_intent = stripe.PaymentIntent.create(
+            amount=amount_in_rupee,
+            currency="inr",
+            payment_method="pm_card_visa",
+            confirm=True,
+            automatic_payment_methods={
+                "enabled": True,
+                "allow_redirects": "never"
+            }
+        )
 
         payment = RiderPayment.objects.create(
             ride=ride,
             rider=user,
-            amount=ride.charges
+            amount=ride.charges,
+            stripe_payment_intent = payment_intent.id,
+            paid = False
         )
 
         return Response({
             "status": True,
-            "message": "Payment created",
-            "data": RiderPaymentSerializer(payment).data
+            "message": "Payment Completed",
+            "data": RiderPaymentSerializer(payment).data,
+            "client_secret": payment_intent.client_secret,
+            "payment_id": payment.id
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'])
@@ -1139,3 +1149,79 @@ class RiderPaymentViewSet(viewsets.ModelViewSet):
             "message": "Payment paid",
             "data": RiderPaymentSerializer(payment).data
         }, status=status.HTTP_202_ACCEPTED)
+    
+
+###########################################################################
+#                       Ratings Module                                    #
+###########################################################################
+
+class RatingsViewSet(viewsets.ModelViewSet):
+    queryset = Ratings.objects.all()
+    serializer_class = RatingsSerializer
+
+    def create(self, request):
+        data = request.data
+        user = request.user
+        if not user.is_authenticated:
+            return Response({
+                "status": False,
+                "message": "Authentication credentials were not provided.",
+                "data": None
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        if user.role == "RIDER":
+            return Response({
+                "status": False,
+                "message": "Riders are not allowed.",
+                "data": None
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        ride_id = data.get("ride")
+        if not ride_id:
+            return Response({
+                "status": False,
+                "message": "Ride is required",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            ride = Ride.objects.get(id=ride_id)
+        except Ride.DoesNotExist:
+            return Response({
+                "status": False,
+                "message": "Ride not found",
+                "data": None
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        if ride.status != "completed":
+            return Response({
+                "status": False,
+                "message": "You can only rate your own ride",
+                "data": None
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        if Ratings.objects.filter(ride=ride).exists():
+            return Response({
+                "status": False,
+                "message": "This ride is already rated",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = RatingsSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save(
+                user=user,
+                rider = ride.rider,
+                ride=ride
+            )
+            return Response({
+                "status": True,
+                "message": "Ratings submitted successfully",
+                "data": serializer.data
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            "status": False,
+            "message": serializer.errors,
+            "data": None
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
