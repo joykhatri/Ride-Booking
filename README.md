@@ -106,7 +106,7 @@ daphne -p 8000 project.asgi:application
 | DELETE | `/api/riders/profile/{id}/` | Delete user    |
 
 ```bash
-1. Create User
+Create User
 {
     "name": "",
     "email": "",
