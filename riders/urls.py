@@ -11,6 +11,4 @@ router.register('payments', RiderPaymentViewSet, basename='payments')
 urlpatterns = [
     path('login/', LoginViewSet.as_view(), name='login')    
 ]
-
-
 urlpatterns += router.urls
